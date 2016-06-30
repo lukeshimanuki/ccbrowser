@@ -399,8 +399,8 @@ int main(int argc, char** argv)
 	cef_settings_t settings =
 	{
 		.size = sizeof(cef_settings_t),
-		.command_line_args_disabled = 1,
-		.no_sandbox = 1,
+		.command_line_args_disabled = STATE_ENABLED,
+		.no_sandbox = STATE_ENABLED,
 		.user_agent = user_agent_cef,
 	};
 
