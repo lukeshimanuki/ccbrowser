@@ -31,6 +31,8 @@ Bind binds[] =
 
 	{ NORMAL, M_NONE, 'q',    quit,     { } },
 
+	{ NORMAL, M_NONE, 'r',    reload,   { } },
+	{ NORMAL, M_NONE, 'x',    stop,     { } },
 	{ NORMAL, M_NONE, 'o',    open_url, { } },
 
 	{ NORMAL, M_NONE, 'b',    back,     { } },

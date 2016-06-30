@@ -293,6 +293,16 @@ void search(cef_browser_t* browser, State* state, Arg arg)
 	frame->load_url(frame, &url);
 }
 
+void reload(cef_browser_t* browser, State* state, Arg arg)
+{
+	browser->reload_ignore_cache(browser);
+}
+
+void stop(cef_browser_t* browser, State* state, Arg arg)
+{
+	browser->stop_load(browser);
+}
+
 
 int spawn(const char* const * argv, FILE** in, FILE** out, FILE** err)
 {
