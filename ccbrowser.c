@@ -391,12 +391,17 @@ int main(int argc, char** argv)
 	if (code >= 0) _exit(code);
 
 	XSetErrorHandler(X_ErrorHandler);
-	
+
+
+	cef_string_t user_agent_cef = {};
+	cef_string_utf8_to_utf16(user_agent, strlen(user_agent), &user_agent_cef);
+
 	cef_settings_t settings =
 	{
 		.size = sizeof(cef_settings_t),
 		.command_line_args_disabled = 1,
 		.no_sandbox = 1,
+		.user_agent = user_agent_cef,
 	};
 
 	cef_initialize(&args, &settings, &app, NULL);

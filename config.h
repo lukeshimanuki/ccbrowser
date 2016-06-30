@@ -3,6 +3,8 @@
 
 #include "defs.h"
 
+const char user_agent[] = "";
+
 const char shell_path[] = "sh";
 const char dmenu_path[] = "dmenu";
 
