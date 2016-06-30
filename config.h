@@ -5,6 +5,8 @@
 
 const char user_agent[] = "";
 
+const char log_file[] = "/dev/null";
+
 const char shell_path[] = "sh";
 const char dmenu_path[] = "dmenu";
 
