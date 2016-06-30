@@ -10,6 +10,8 @@ const char log_file[] = "/dev/null";
 const char shell_path[] = "sh";
 const char dmenu_path[] = "dmenu";
 
+const int enable_images = 1;
+
 // modes
 enum
 {

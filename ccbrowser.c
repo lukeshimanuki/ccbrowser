@@ -429,6 +429,7 @@ int main(int argc, char** argv)
 	cef_browser_settings_t browserSettings =
 	{
 		.size = sizeof(cef_browser_settings_t),
+		.image_loading = enable_images ? STATE_ENABLED : STATE_DISABLED,
 	};
 	
 	cef_browser_host_create_browser(&windowInfo, &client, &cefUrl, &browserSettings, NULL);
