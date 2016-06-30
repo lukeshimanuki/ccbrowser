@@ -402,6 +402,11 @@ int main(int argc, char** argv)
 
 	XSetErrorHandler(X_ErrorHandler);
 
+	char cache_path_str[256] = "";
+	if (argc >= 2) strncpy(cache_path_str, argv[1], sizeof(cache_path_str));
+	cef_string_t cache_path = {};
+	cef_string_utf8_to_utf16(cache_path_str, strlen(cache_path_str), &cache_path);
+
 	cef_string_t log_file_cef = {};
 	cef_string_utf8_to_utf16(log_file, strlen(log_file), &log_file_cef);
 
@@ -413,6 +418,7 @@ int main(int argc, char** argv)
 		.size = sizeof(cef_settings_t),
 		.command_line_args_disabled = STATE_ENABLED,
 		.no_sandbox = STATE_ENABLED,
+		.cache_path = cache_path,
 		.log_file = log_file_cef,
 		.log_severity = LOGSEVERITY_DEFAULT,
 		.user_agent = user_agent_cef,
