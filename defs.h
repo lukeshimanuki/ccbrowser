@@ -17,6 +17,8 @@ typedef enum
 typedef struct
 {
 	uint8_t mode;
+	char* exe;
+	char* cache_path;
 } State;
 
 typedef union
@@ -39,6 +41,9 @@ void forwards   (cef_browser_t*, State*, Arg);
 void search     (cef_browser_t*, State*, Arg);
 void reload     (cef_browser_t*, State*, Arg);
 void stop       (cef_browser_t*, State*, Arg);
+void javascript (cef_browser_t*, State*, Arg);
+void link_hints (cef_browser_t*, State*, Arg);
+void duplicate  (cef_browser_t*, State*, Arg);
 
 
 typedef struct

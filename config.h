@@ -42,6 +42,9 @@ Bind binds[] =
 	{ NORMAL, M_NONE, 'b',    back,     { } },
 	{ NORMAL, M_NONE, 'f',    forwards, { } },
 
+	{ NORMAL, M_NONE, 'a',    link_hints, { } },
+	{ NORMAL, M_NONE, 'c',    duplicate,  { } },
+
 	// insert mode
 	{ INSERT, M_NONE, 0x1B,   set_mode, { .mode = NORMAL } },
 };

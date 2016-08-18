@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <X11/Xlib.h>
 
@@ -185,6 +186,7 @@ int on_jsdialog(cef_jsdialog_handler_t* self, cef_browser_t* browser, const cef_
 // keybind functions
 int spawn(const char* const *, FILE**, FILE**, FILE**);
 size_t dmenu(char*, size_t, const char* const *, size_t);
+void run_js(cef_frame_t*, const char*);
 
 void shell(cef_browser_t* browser, State* state, Arg arg)
 {
@@ -254,6 +256,49 @@ void forwards(cef_browser_t* browser, State* state, Arg arg)
 		browser->go_forward(browser);
 }
 
+int fork_window(State* state, char* cache_path, char* url)
+{
+	pid_t pid = fork();
+	if (pid < 0) return 1;
+	else if (pid == 0)
+	{
+		setsid();
+		signal(SIGHUP, SIG_IGN);
+
+		const char* argv[] =
+		{
+			state->exe,
+			cache_path,
+			url,
+			NULL
+		};
+
+		execvp(argv[0], (char* const *)argv);
+
+		exit(1);
+	}
+	else return 0;
+}
+
+void duplicate(cef_browser_t* browser, State* state, Arg arg)
+{
+	cef_frame_t* frame = browser->get_main_frame(browser);
+	cef_string_t* url_cef = frame->get_url(frame);
+	char url[1024];
+	for (size_t i = 0; i < url_cef->length + 1; i++)
+		url[i] = url_cef->str[i];
+	fork_window(state, state->cache_path, url);
+}
+
+void javascript(cef_browser_t* browser, State* state, Arg arg)
+{
+	run_js(browser->get_main_frame(browser), arg.string);
+}
+
+void link_hints(cef_browser_t* browser, State* state, Arg arg)
+{
+}
+
 void encode_url(char* dest, char* str)
 {
 	size_t len_str = strlen(str);
@@ -317,6 +362,9 @@ int spawn(const char* const * argv, FILE** in, FILE** out, FILE** err)
 	if (pid < 0) return 1;
 	else if (pid == 0)
 	{
+		setsid();
+		signal(SIGHUP, SIG_IGN);
+
 		dup2(pipe_in[0], STDIN_FILENO);
 		dup2(pipe_out[1], STDOUT_FILENO);
 		dup2(pipe_err[1], STDERR_FILENO);
@@ -380,6 +428,14 @@ size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_
 	return -1;
 }
 
+void run_js(cef_frame_t* frame, const char* js_str)
+{
+	cef_string_t js = {};
+	cef_string_utf8_to_utf16(js_str, strlen(js_str), &js);
+
+	frame->execute_java_script(frame, &js, frame->get_url(frame), 0);
+}
+
 
 int X_ErrorHandler(Display* display, XErrorEvent* event)
 {
@@ -403,7 +459,9 @@ int main(int argc, char** argv)
 	XSetErrorHandler(X_ErrorHandler);
 
 	char cache_path_str[256] = "";
-	if (argc >= 2) strncpy(cache_path_str, argv[1], sizeof(cache_path_str));
+	global_state.cache_path = cache_path_str;
+
+	strncpy(cache_path_str, argv[1], sizeof(cache_path_str));
 	cef_string_t cache_path = {};
 	cef_string_utf8_to_utf16(cache_path_str, strlen(cache_path_str), &cache_path);
 
@@ -428,7 +486,15 @@ int main(int argc, char** argv)
 
 	cef_window_info_t windowInfo = {};
 
-	char url[] = "https://www.google.com";
+	// in child processes, argv[0] contains all arguments delimited by spaces
+	char arg_arr[3][256];
+	sscanf(argv[0], " %s %s %s", arg_arr[0], arg_arr[1], arg_arr[2]);
+
+	global_state.exe = arg_arr[0];
+	strncpy(cache_path_str, arg_arr[1], sizeof(cache_path_str));
+	char url[256];
+	strncpy(url, arg_arr[2], sizeof(url));
+
 	cef_string_t cefUrl = {};
 	cef_string_utf8_to_utf16(url, strlen(url), &cefUrl);
 	
