@@ -21,9 +21,18 @@ typedef struct
 
 typedef union
 {
+	bool boolean;
+	int integer;
+	double float64;
+	const char* string;
+} Value;
+
+typedef union
+{
 	const char* string;
 	uint8_t mode;
 	struct {int down; int right;} scroll;
+	struct {const char* name; Value value; char vtype;} preference;
 	bool flag;
 } Arg;
 
@@ -37,6 +46,7 @@ void scroll     (cef_browser_t*, State*, Arg);
 void back       (cef_browser_t*, State*, Arg);
 void forwards   (cef_browser_t*, State*, Arg);
 void search     (cef_browser_t*, State*, Arg);
+void preference (cef_browser_t*, State*, Arg);
 void reload     (cef_browser_t*, State*, Arg);
 void stop       (cef_browser_t*, State*, Arg);
 

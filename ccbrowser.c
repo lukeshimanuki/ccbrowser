@@ -293,6 +293,37 @@ void search(cef_browser_t* browser, State* state, Arg arg)
 	frame->load_url(frame, &url);
 }
 
+void preference(cef_browser_t* browser, State* state, Arg arg)
+{
+	cef_browser_host_t* host = browser->get_host(browser);
+	cef_request_context_t* context = host->get_request_context(host);
+
+	const char* name_str = arg.preference.name;
+
+	cef_string_t name = {};
+	cef_string_utf8_to_utf16(name_str, strlen(name_str), &name);
+
+	cef_value_t* value = cef_value_create();
+	Value value_u = arg.preference.value;
+	switch (arg.preference.vtype)
+	{
+		case 'b': value->set_bool(value, value_u.boolean); break;
+		case 'i': value->set_int(value, value_u.integer); break;
+		case 'f': value->set_double(value, value_u.float64); break;
+		case 's':
+		{
+			cef_string_t str = {};
+			cef_string_utf8_to_utf16(value_u.string, strlen(value_u.string), &str);
+			value->set_string(value, &str);
+			break;
+		}
+	}
+
+	cef_string_t error = {};
+
+	context->set_preference(context, &name, value, &error);
+}
+
 void reload(cef_browser_t* browser, State* state, Arg arg)
 {
 	browser->reload_ignore_cache(browser);

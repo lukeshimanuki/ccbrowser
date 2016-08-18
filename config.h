@@ -51,6 +51,9 @@ Command commands[] =
 	// string  function    args
 	{  "ddg",  search,     { .string = "duckduckgo.com/?q="       } },
 	{  "gg",   search,     { .string = "www.google.com/search?q=" } },
+
+	{  "ie",   preference, { .preference = {"profile.default_content_setting_values.images", {.integer = 0 }, 'i'} } },
+	{  "id",   preference, { .preference = {"profile.default_content_setting_values.images", {.integer = 2 }, 'i'} } },
 };
 
 // if unbound keypresses should be sent to the renderer
