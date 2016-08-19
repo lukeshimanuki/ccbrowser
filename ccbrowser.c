@@ -409,9 +409,9 @@ size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_
 		for (size_t i = 0; i < len_dest - 1; i++)
 		{
 			int c = fgetc(out);
-			if (c == ' ' || c == '\n' || c == '\t' || c == EOF)
+			if (c == '\n' || c == EOF)
 			{
-				dest[i] = '\0';
+				if (i > 0) dest[i] = '\0';
 				break;
 			}
 			dest[i] = c;
