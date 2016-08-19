@@ -295,6 +295,20 @@ void javascript(cef_browser_t* browser, State* state, Arg arg)
 	run_js(browser->get_main_frame(browser), arg.string);
 }
 
+void stylesheet(cef_browser_t* browser, State* state, Arg arg)
+{
+	char js[4096];
+	snprintf(js, sizeof(js), "if(typeof __custom_stylesheet__!=='undefined'){document.head.removeChild(__custom_stylesheet__);}__custom_stylesheet__=document.createElement('style');__custom_stylesheet__.innerHTML='%s';document.head.appendChild(__custom_stylesheet__);", arg.string);
+	run_js(browser->get_main_frame(browser), js);
+}
+
+void pop_style(cef_browser_t* browser, State* state, Arg arg)
+{
+	char js[256];
+	snprintf(js, sizeof(js), "if(typeof __custom_stylesheet__!=='undefined'){document.head.removeChild(__custom_stylesheet__);delete __custom_stylesheet__}");
+	run_js(browser->get_main_frame(browser), js);
+}
+
 void link_hints(cef_browser_t* browser, State* state, Arg arg)
 {
 }

@@ -42,9 +42,10 @@ void search     (cef_browser_t*, State*, Arg);
 void reload     (cef_browser_t*, State*, Arg);
 void stop       (cef_browser_t*, State*, Arg);
 void javascript (cef_browser_t*, State*, Arg);
+void stylesheet (cef_browser_t*, State*, Arg);
+void pop_style  (cef_browser_t*, State*, Arg);
 void link_hints (cef_browser_t*, State*, Arg);
 void duplicate  (cef_browser_t*, State*, Arg);
-
 
 typedef struct
 {

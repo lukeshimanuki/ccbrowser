@@ -54,6 +54,8 @@ Command commands[] =
 	// string  function    args
 	{  "ddg",  search,     { .string = "duckduckgo.com/?q="       } },
 	{  "gg",   search,     { .string = "www.google.com/search?q=" } },
+	{  "cd",   stylesheet, { .string = "* { background: black ! important; color: grey !important }:link, :link * { color: #0000EE !important }:visited, :visited * { color: #551A8B !important }" } },
+	{  "cn",   pop_style,  { } },
 };
 
 // if unbound keypresses should be sent to the renderer
