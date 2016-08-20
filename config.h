@@ -42,7 +42,9 @@ Bind binds[] =
 	{ NORMAL, M_NONE, 'b',    back,     { } },
 	{ NORMAL, M_NONE, 'f',    forwards, { } },
 
-	{ NORMAL, M_NONE, 'a',    link_hints, { } },
+	{ NORMAL, M_NONE, 'a',    show_hints, { .string = "asdf" } },
+	{ NORMAL, M_NONE, 'd',    hide_hints, { } },
+	{ NORMAL, M_NONE, 's',    select_hint,{ .string = "asdf" } },
 	{ NORMAL, M_NONE, 'c',    duplicate,  { } },
 
 	// insert mode

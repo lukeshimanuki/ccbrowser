@@ -309,8 +309,120 @@ void pop_style(cef_browser_t* browser, State* state, Arg arg)
 	run_js(browser->get_main_frame(browser), js);
 }
 
-void link_hints(cef_browser_t* browser, State* state, Arg arg)
+void show_hints(cef_browser_t* browser, State* state, Arg arg)
 {
+	char js[4096];
+
+	cef_frame_t* frame = browser->get_main_frame(browser);
+
+	snprintf(js, sizeof(js),
+		R"JS(div = document.body.querySelector('div[id=__ccbrowser_link_hints__]');)JS"
+		R"JS(if(div!=undefined){document.body.removeChild(div);})JS"
+		R"JS(chars = '%s';)JS"
+		R"JS(function idx2str(idx){return idx==0?'':chars.charAt(idx%%chars.length)+idx2str(idx/chars.length|0);})JS"
+		R"JS(elems_list = [];)JS"
+		R"JS(wt = window.scrollY;)JS"
+		R"JS(wb = wt + window.innerHeight;)JS"
+		R"JS(wl = window.scrollX;)JS"
+		R"JS(wr = wl + window.innerWidth;)JS"
+		R"JS(elems = document.body.querySelectorAll('a, input:not([type=hidden]), textarea, select, button');)JS"
+		R"JS(div = document.createElement('div');)JS"
+		R"JS(div.setAttribute('id', '__ccbrowser_link_hints__');)JS"
+		R"JS(document.body.appendChild(div);)JS"
+		R"JS(for (i = 0; i < elems.length; i++) {)JS"
+		R"JS(	elem = elems[i];)JS"
+		R"JS(	pos = elem.getBoundingClientRect();)JS"
+		R"JS(	if (pos.height==0 || pos.width==0))JS"
+		R"JS(		continue;)JS"
+		R"JS(	et = wt + pos.top;)JS"
+		R"JS(	eb = wt + pos.bottom;)JS"
+		R"JS(	el = wl + pos.left;)JS"
+		R"JS(	er = wl + pos.left;)JS" 
+		R"JS(	if (eb >= wt && et <= wb) {)JS"
+		R"JS(		elems_list.push(elem);)JS"
+		R"JS(		span = document.createElement('span');)JS"
+		R"JS(		span.style.cssText = [)JS"
+		R"JS(			'color: white;',)JS"
+		R"JS(			'background-color: green;',)JS"
+		R"JS(			'font-size: 12px;',)JS"
+		R"JS(			'position: absolute;',)JS"
+		R"JS(			'left: ', el, 'px;',)JS"
+		R"JS(			'top: ', et, 'px;',)JS"
+		R"JS(			'padding: 1px 2px;',)JS"
+		R"JS(		].join('');)JS"
+		R"JS(		span.innerHTML = idx2str(elems_list.length);)JS"
+		R"JS(		div.appendChild(span);)JS"
+		R"JS(	})JS"
+		R"JS(})JS"
+		, arg.string
+	);
+	run_js(frame, js);
+}
+
+void hide_hints(cef_browser_t* browser, State* state, Arg arg)
+{
+	char js[4096];
+
+	cef_frame_t* frame = browser->get_main_frame(browser);
+
+	snprintf(js, sizeof(js),
+		R"JS(div = document.body.querySelector('div[id=__ccbrowser_link_hints__]');)JS"
+		R"JS(if(div!=undefined){document.body.removeChild(div);})JS"
+	);
+	run_js(frame, js);
+}
+
+int str2int(const char* digits, const char* str)
+{
+	char c = *str;
+	if (c == '\0') return 0;
+	int recurse = str2int(digits, str + 1);
+	if (recurse == -1) return -1;
+	int base = strlen(digits);
+	for (int i = 0; i < base; i++)
+		if (c == digits[i])
+			return recurse * base + i;
+	return -1;
+}
+
+void select_hint(cef_browser_t* browser, State* state, Arg arg)
+{
+	char js[4096];
+
+	cef_frame_t* frame = browser->get_main_frame(browser);
+
+	char selection[256];
+	dmenu(selection, sizeof(selection), NULL, 0);
+	size_t len = strlen(selection);
+	for (size_t i = 0; i < len; i++)
+	{
+		char c = selection[i];
+		if ((c < 'a' || c > 'z') && (c < '0' || c > '9')) // only allow alphanumeric
+			selection[i] = ' ';
+	}
+
+	snprintf(js, sizeof(js),
+		R"JS(idx = %i;)JS"
+		R"JS(if (idx > 0 && idx <= elems_list.length) {)JS"
+		R"JS(	elem = elems_list[idx - 1];)JS"
+		R"JS(	if (elem != undefined) {)JS"
+		R"JS(		tag = elem.tagName.toLowerCase();)JS"
+		R"JS(		type = elem.type ? elem.type.toLowerCase() : '';)JS"
+		R"JS(		if (tag == 'a' && elem.href != ''))JS"
+		R"JS(			location.href=elem.href;)JS"
+		R"JS(		if (tag == 'input' && (type == 'submit' || type == 'button' || type == 'reset')))JS"
+		R"JS(			elem.click();)JS"
+		R"JS(		if (tag == 'input' || tag == 'textarea') {)JS"
+		R"JS(			elem.focus();)JS"
+		R"JS(			elem.setSelectionRange(elem.value.length, elem.value.length);)JS"
+		R"JS(		})JS"
+		R"JS(		if (tag == 'input' && (type == 'radio' || type == 'checkbox')))JS"
+		R"JS(			elem.checked = !elem.checked;)JS"
+		R"JS(	})JS"
+		R"JS(})JS"
+		, strlen(selection) > 0 ? str2int(arg.string, selection) : -1
+	);
+	run_js(frame, js);
 }
 
 void encode_url(char* dest, char* str)
@@ -422,16 +534,13 @@ size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_
 
 		for (size_t i = 0; i < len_dest - 1; i++)
 		{
+			dest[i] = '\0';
 			int c = fgetc(out);
-			if (c == '\n' || c == EOF)
-			{
-				if (i > 0) dest[i] = '\0';
-				break;
-			}
+			if (c == '\n' || c == EOF) break;
 			dest[i] = c;
+			dest[i + 1] = '\0';
 		}
 		fclose(out);
-		dest[len_dest - 1] = '\0';
 
 		for (size_t i = 0; i < num_items; i++)
 			if (strlen(dest) == strlen(items[i]) && strcmp(dest, items[i]) == 0)
