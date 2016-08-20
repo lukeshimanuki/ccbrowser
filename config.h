@@ -19,6 +19,11 @@ enum
 	INSERT = 1,
 };
 
+char bookmarks[] =
+	"google.com\n"
+	"duckduckgo.com\n"
+;
+
 Bind binds[] =
 {
 	// mode   mods    keys    function  args
@@ -37,7 +42,7 @@ Bind binds[] =
 
 	{ NORMAL, M_NONE, 'r',    reload,   { } },
 	{ NORMAL, M_NONE, 'x',    stop,     { } },
-	{ NORMAL, M_NONE, 'o',    open_url, { } },
+	{ NORMAL, M_NONE, 'o',    open_url, { .string = "" } },
 
 	{ NORMAL, M_NONE, 'b',    back,     { } },
 	{ NORMAL, M_NONE, 'f',    forwards, { } },
@@ -46,6 +51,9 @@ Bind binds[] =
 	{ NORMAL, M_NONE, 'd',    hide_hints, { } },
 	{ NORMAL, M_NONE, 's',    select_hint,{ .string = "asdf" } },
 	{ NORMAL, M_NONE, 'c',    duplicate,  { } },
+
+	{ NORMAL, M_NONE, 'm',    open_url,   { .string = history } },
+	{ NORMAL, M_NONE, 'n',    open_url,   { .string = bookmarks } },
 
 	// insert mode
 	{ INSERT, M_NONE, 0x1B,   set_mode, { .mode = NORMAL } },

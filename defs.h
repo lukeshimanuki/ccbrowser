@@ -49,6 +49,8 @@ void hide_hints (cef_browser_t*, State*, Arg);
 void select_hint(cef_browser_t*, State*, Arg);
 void duplicate  (cef_browser_t*, State*, Arg);
 
+char history[262144];
+
 typedef struct
 {
 	uint8_t mode;

@@ -17,6 +17,8 @@ State global_state =
 	.mode = 0,
 };
 
+FILE* history_cache = NULL;
+
 // app
 
 void on_before_command_line_processing(cef_app_t*, const cef_string_t*, cef_command_line_t*);
@@ -165,12 +167,19 @@ void on_load_start(cef_load_handler_t* self, cef_browser_t* browser, cef_frame_t
 
 void on_load_end(cef_load_handler_t* self, cef_browser_t* browser, cef_frame_t* frame, int httpStatusCode)
 {
-	char js_str[1024];
-	snprintf(js_str, sizeof(js_str), "document.body.style.background = '#000';");
-	cef_string_t js = {};
-	cef_string_utf8_to_utf16(js_str, strlen(js_str), &js);
-
-//	frame->execute_java_script(frame, &js, frame->get_url(frame), 0);
+	cef_string_t* url = frame->get_url(frame);
+	size_t beg = strnlen(history, sizeof(history));
+	size_t i = 0;
+	while (i < url->length && beg + i < sizeof(history) - 2)
+	{
+		history[beg + i] = url->str[i];
+		fprintf(history_cache, "%c", url->str[i]);
+		i++;
+	}
+	history[beg + i] = '\n';
+	history[beg + i + 1] = '\0';
+	fprintf(history_cache, "\n");
+	fflush(history_cache);
 }
 
 int on_jsdialog(cef_jsdialog_handler_t* self, cef_browser_t* browser, const cef_string_t* origin_url, const cef_string_t* accept_lang, cef_jsdialog_type_t dialog_type, const cef_string_t* message_text, const cef_string_t* default_prompt_text, cef_jsdialog_callback_t* callback, int* suppress_message)
@@ -185,7 +194,7 @@ int on_jsdialog(cef_jsdialog_handler_t* self, cef_browser_t* browser, const cef_
 
 // keybind functions
 int spawn(const char* const *, FILE**, FILE**, FILE**);
-size_t dmenu(char*, size_t, const char* const *, size_t);
+size_t dmenu(char*, size_t, const char* const *, size_t, const char*, int);
 void run_js(cef_frame_t*, const char*);
 
 void shell(cef_browser_t* browser, State* state, Arg arg)
@@ -212,7 +221,7 @@ void command(cef_browser_t* browser, State* state, Arg arg)
 	for (size_t i = 0; i < num_commands; i++)
 		items[i] = commands[i].string;
 
-	size_t sel = dmenu(NULL, 0, items, num_commands);
+	size_t sel = dmenu(NULL, 0, items, num_commands, "", 0);
 
 	commands[sel].func(browser, state, commands[sel].arg);
 }
@@ -224,13 +233,17 @@ void quit(cef_browser_t* browser, State* state, Arg arg)
 
 void open_url(cef_browser_t* browser, State* state, Arg arg)
 {
-	char url_str[256];
-	dmenu(url_str, sizeof(url_str), NULL, 0);
-	cef_string_t url = {};
-	cef_string_utf8_to_utf16(url_str, strlen(url_str), &url);
+	char url_str[1024];
+	dmenu(url_str, sizeof(url_str), NULL, 0, arg.string, 20);
 
-	cef_frame_t* frame = browser->get_main_frame(browser);
-	frame->load_url(frame, &url);
+	if (strnlen(url_str, sizeof(url_str)) > 0)
+	{
+		cef_string_t url = {};
+		cef_string_utf8_to_utf16(url_str, strlen(url_str), &url);
+
+		cef_frame_t* frame = browser->get_main_frame(browser);
+		frame->load_url(frame, &url);
+	}
 }
 
 void scroll(cef_browser_t* browser, State* state, Arg arg)
@@ -392,7 +405,7 @@ void select_hint(cef_browser_t* browser, State* state, Arg arg)
 	cef_frame_t* frame = browser->get_main_frame(browser);
 
 	char selection[256];
-	dmenu(selection, sizeof(selection), NULL, 0);
+	dmenu(selection, sizeof(selection), NULL, 0, "", 0);
 	size_t len = strlen(selection);
 	for (size_t i = 0; i < len; i++)
 	{
@@ -452,7 +465,7 @@ void encode_url(char* dest, char* str)
 void search(cef_browser_t* browser, State* state, Arg arg)
 {
 	char query[256];
-	dmenu(query, sizeof(query), NULL, 0);
+	dmenu(query, sizeof(query), NULL, 0, "", 0);
 
 	char url_str[256];
 	strcpy(url_str, arg.string);
@@ -512,7 +525,7 @@ int spawn(const char* const * argv, FILE** in, FILE** out, FILE** err)
 	}
 }
 
-size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_items)
+size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_items, const char* initial_args, int lines)
 {
 	char buffer[256];
 	if (!dest)
@@ -521,13 +534,17 @@ size_t dmenu(char* dest, size_t len_dest, const char* const * items, size_t num_
 		len_dest = sizeof(buffer);
 	}
 
-	const char* const argv[] = {shell_path, "-c", dmenu_path, NULL};
+	char lines_arg[32] = "";
+	snprintf(lines_arg, sizeof(lines_arg), "%s -l %i", dmenu_path, lines);
+
+	const char* const argv[] = {shell_path, "-c", lines > 0 ? lines_arg : dmenu_path, NULL};
 
 	FILE* in;
 	FILE* out;
 
 	if (spawn(argv, &in, &out, NULL) == 0)
 	{
+		fprintf(in, "%s\n", initial_args);
 		for (size_t i = 0; i < num_items; i++)
 			fprintf(in, "%s\n", items[i]);
 		fclose(in);
@@ -587,6 +604,20 @@ int main(int argc, char** argv)
 	strncpy(cache_path_str, argv[1], sizeof(cache_path_str));
 	cef_string_t cache_path = {};
 	cef_string_utf8_to_utf16(cache_path_str, strlen(cache_path_str), &cache_path);
+
+	char history_path[256] = "";
+	strncpy(history_path, cache_path_str, sizeof(history_path));
+	strcat(history_path, "/history");
+	FILE* history_cache_in = fopen(history_path, "r");
+	if (history_cache_in != NULL)
+	{
+		int c;
+		size_t idx = 0;
+		while ((c = fgetc(history_cache_in)) != EOF)
+			history[idx++] = c;
+		history[idx] = '\0';
+	}
+	history_cache = fopen(history_path, "aw");
 
 	cef_string_t log_file_cef = {};
 	cef_string_utf8_to_utf16(log_file, strlen(log_file), &log_file_cef);
